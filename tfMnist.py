@@ -20,11 +20,13 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+import logging
 
 from tensorflow.contrib import learn
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
 
-tf.logging.set_verbosity(tf.logging.INFO)
+tf.logging.set_verbosity(tf.logging.INFO) # crashing
+#tf.logging.set_verbosity(tf.logging.DEBUG) # working
 
 
 def cnn_model_fn(features, labels, mode):
@@ -41,7 +43,7 @@ def cnn_model_fn(features, labels, mode):
     # Output Tensor Shape: [batch_size, 28, 28, 32]
     conv1 = tf.layers.conv2d(
       inputs=input_layer,
-      filters=32,
+      filters=64,
       kernel_size=[5, 5],
       padding="same",
       activation=tf.nn.relu)
@@ -64,11 +66,18 @@ def cnn_model_fn(features, labels, mode):
       padding="same",
       activation=tf.nn.relu)
 
+    conv2b = tf.layers.conv2d(
+      inputs=conv2,
+      filters=64,
+      kernel_size=[3, 3],
+      padding="same",
+      activation=tf.nn.relu)
+
     # Pooling Layer #2
     # Second max pooling layer with a 2x2 filter and stride of 2
     # Input Tensor Shape: [batch_size, 14, 14, 64]
     # Output Tensor Shape: [batch_size, 7, 7, 64]
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+    pool2 = tf.layers.max_pooling2d(inputs=conv2b, pool_size=[2, 2], strides=2)
 
     # Flatten tensor into a batch of vectors
     # Input Tensor Shape: [batch_size, 7, 7, 64]
@@ -79,7 +88,7 @@ def cnn_model_fn(features, labels, mode):
     # Densely connected layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
-    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+    dense = tf.layers.dense(inputs=pool2_flat, units=512, activation=tf.nn.relu)
 
     # Add dropout operation; 0.6 probability that element will be kept
     dropout = tf.layers.dropout(inputs=dense, rate=0.4, training=mode == learn.ModeKeys.TRAIN)
@@ -128,12 +137,12 @@ def main(unused_argv):
 
     # Set up logging for predictions
     # Log the values in the "Softmax" tensor with label "probabilities"
-    # tensors_to_log = {"probabilities": "softmax_tensor"}
+    tensors_to_log = {"probabilities": "softmax_tensor"}
     tensors_to_log = {}
     logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=5000)
 
     # Train the model
-    mnist_classifier.fit(x=train_data, y=train_labels, batch_size=64, steps=20000, monitors=[logging_hook])
+    mnist_classifier.fit(x=train_data, y=train_labels, batch_size=768, steps=200, monitors=[logging_hook])
 
 
     # Configure the accuracy metric for evaluation
