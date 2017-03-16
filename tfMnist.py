@@ -24,6 +24,7 @@ import logging
 
 from tensorflow.contrib import learn
 from tensorflow.contrib.learn.python.learn.estimators import model_fn as model_fn_lib
+from tensorflow.contrib.learn.python.learn.estimators import RunConfig
 
 tf.logging.set_verbosity(tf.logging.INFO) # crashing
 #tf.logging.set_verbosity(tf.logging.DEBUG) # working
@@ -132,8 +133,12 @@ def main(unused_argv):
     eval_data = mnist.test.images  # Returns np.array
     eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
+    # Assume that you have 12GB of GPU memory and want to allocate ~4GB:
+    #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
+    run_config = RunConfig(num_cores=3, gpu_memory_fraction=0.9)
+    
     # Create the Estimator
-    mnist_classifier = learn.Estimator(model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
+    mnist_classifier = learn.Estimator(model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model", config=run_config)
 
     # Set up logging for predictions
     # Log the values in the "Softmax" tensor with label "probabilities"
@@ -142,7 +147,7 @@ def main(unused_argv):
     logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=5000)
 
     # Train the model
-    mnist_classifier.fit(x=train_data, y=train_labels, batch_size=768, steps=200, monitors=[logging_hook])
+    mnist_classifier.fit(x=train_data, y=train_labels, batch_size=768, steps=2000, monitors=[logging_hook])
 
 
     # Configure the accuracy metric for evaluation
